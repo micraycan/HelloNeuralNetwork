@@ -1,9 +1,13 @@
 using UnityEngine;
 using System.IO;
 using Sirenix.OdinInspector;
+using Unity.Mathematics;
+using System.Linq;
+using System;
+
+
 
 #if UNITY_EDITOR
-using UnityEditor;
 #endif
 using System.Globalization;
 
@@ -17,66 +21,46 @@ namespace SVGL
         public void TrainModel()
         {
 #if UNITY_EDITOR
-            NeuralNetwork neuralNetwork = new NeuralNetwork(_settings, true);
-
+            NeuralNetwork neuralNet = new NeuralNetwork(_settings);
             string csvPath = Path.Combine(Application.streamingAssetsPath, _settings.TrainDataFile);
-
-            if (!File.Exists(csvPath))
-            {
-                Debug.LogError("CSV file not found at path: " + csvPath);
-                return;
-            }
-
             string[] lines = File.ReadAllLines(csvPath);
-            Debug.Log($"Total training samples in CSV: {lines.Length}");
 
-            int examplesToTrain = Mathf.Min(_settings.TrainingSize, lines.Length);
-            Debug.Log($"Training on {examplesToTrain} samples...");
-
-            for (int i = 0; i < examplesToTrain; i++)
+            for (int epoch = 0; epoch < _settings.Epochs; epoch++)
             {
-                string line = lines[i];
-                string[] parts = line.Split(',');
+                string[] shuffledLines = lines.OrderBy(x => Guid.NewGuid()).ToArray();
 
-                if (parts.Length != 785) // 784 pixels + 1 label
+                foreach (string line in shuffledLines)
                 {
-                    Debug.LogWarning($"Skipping invalid line {i}");
-                    continue;
+                    ProcessSample(neuralNet, line);
                 }
 
-                if (!int.TryParse(parts[0], out int label))
-                {
-                    Debug.LogWarning($"Skipping invalid label {parts[0]}");
-                    continue;
-                }
-
-                float[] pixels = new float[_settings.InputSize];
-                for (int j = 0; j < _settings.InputSize; j++)
-                {
-                    if (!float.TryParse(parts[j + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out float pixelValue))
-                    {
-                        Debug.LogWarning($"Skipping invalid pixel {parts[j + 1]}");
-                        pixelValue = 0;
-                        continue;
-                    }
-
-                    pixels[j] = pixelValue / 255f; // Normalize pixel values
-                }
-
-                neuralNetwork.TrainOnSample(pixels, label);
-
-                if (i % 1000 == 0) { Debug.Log($"Trained on {i} samples..."); }
+                ModelEvaluator.EvaluateTestSet(neuralNet, _settings);
             }
 
             string filePath = Path.Combine(Application.streamingAssetsPath, _settings.WeightDataFile);
-
-            neuralNetwork.SaveWeights(filePath);
-
-            Debug.Log($"Model weights exported to: {filePath}");
-            ModelEvaluator.EvaluateTestSet(neuralNetwork, _settings);
+            neuralNet.SaveWeights(filePath);
 #else
             Debug.LogError("How'd you even get here?");
 #endif
+        }
+
+        private void ProcessSample(NeuralNetwork neuralNet, string line)
+        {
+            string[] parts = line.Split(',');
+            int label = int.Parse(parts[0]);
+            float[] pixels = new float[_settings.InputSize];
+
+            for (int j = 0; j < pixels.Length; j++)
+            {
+                if (!float.TryParse(parts[j + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
+                {
+                    value = 0f;
+                }
+
+                pixels[j] = Mathf.Clamp(value / 255, 0, 1);
+            }
+
+            neuralNet.Train(pixels, label);
         }
     }
 }

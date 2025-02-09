@@ -50,8 +50,7 @@ namespace SVGL
                     pixels[j] = pixelValue / 255;
                 }
 
-                float[] h1, h2, logits;
-                float[] output = neuralNetwork.Forward(pixels, out h1, out h2, out logits);
+                float[] output = neuralNetwork.Forward(pixels);
 
                 // Determine the predicted label (index of maximum probability).
                 int predictedLabel = 0;

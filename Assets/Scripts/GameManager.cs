@@ -23,6 +23,7 @@ namespace SVGL
             NeuralNet = new NeuralNetwork(NetworkSettings);
 
             string filePath = Path.Combine(Application.streamingAssetsPath, NetworkSettings.WeightDataFile);
+            filePath = filePath.Replace("\\", "/");
             NeuralNet.LoadWeights(filePath);
         }
     }

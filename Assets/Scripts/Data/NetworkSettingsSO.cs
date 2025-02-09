@@ -18,9 +18,8 @@ namespace SVGL
         [SerializeField] private int _outputSize;
 
         [Header("Training Parameters")]
-        [SerializeField] private int _trainingSize;
         [SerializeField] private float _learningRate;
-        [SerializeField] private int _epoch;
+        [SerializeField] private int _epochs;
 
         public string TrainDataFile => trainCSV.name + ".csv";
         public string TestDataFile => testCSV.name + ".csv";
@@ -31,8 +30,7 @@ namespace SVGL
         public int HiddenSize2 => _hiddenSize2;
         public int OutputSize => _outputSize;
 
-        public int TrainingSize => _trainingSize;
         public float LearningRate => _learningRate;
-        public int Epoch => _epoch;
+        public int Epochs => _epochs;
     }
 }

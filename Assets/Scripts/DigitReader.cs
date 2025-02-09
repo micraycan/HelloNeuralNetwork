@@ -14,7 +14,7 @@ namespace SVGL
             ImageProcessor processor = new ImageProcessor(image);
             NeuralNetwork neuralNet = GameManager.Instance.NeuralNet;
 
-            float[] result = neuralNet.Forward(processor.ImagePixelData, out float[] h1, out float[] h2, out float[] logits);
+            float[] result = neuralNet.Forward(processor.ImagePixelData);
 
             int highestIndex = 0;
             float highestWeight = float.NegativeInfinity;
