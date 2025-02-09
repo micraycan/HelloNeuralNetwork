@@ -7,69 +7,102 @@ namespace SVGL
     [Serializable]
     public class NeuralNetwork
     {
-        public readonly int INPUT_SIZE = 784;
-        public readonly int HIDDEN_SIZE = 128;
-        public readonly int OUTPUT_SIZE = 10;
-        public readonly float LEARNING_RATE = 0.05f;
+        private int _inputSize;
+        private int _hiddenSize1;
+        private int _hiddenSize2;
+        private int _outputSize;
+        private float _learningRate;
 
-        public float[,] W1;
-        public float[] B1;
-        public float[,] W2;
-        public float[] B2; 
+        private float[,] _w1;
+        private float[] _b1;
+        private float[,] _w2;
+        private float[] _b2;
+        private float[,] _w3;
+        private float[] _b3;
 
         System.Random rand = new System.Random();
 
-        public NeuralNetwork()
+        public NeuralNetwork(NetworkSettingsSO settings, bool randomValues = false)
         {
-            W1 = new float[HIDDEN_SIZE, INPUT_SIZE];
-            B1 = new float[HIDDEN_SIZE];
-            W2 = new float[OUTPUT_SIZE, HIDDEN_SIZE];
-            B2 = new float[OUTPUT_SIZE];
+            _inputSize = settings.InputSize;
+            _hiddenSize1 = settings.HiddenSize1;
+            _hiddenSize2 = settings.HiddenSize2;
+            _outputSize = settings.OutputSize;
+            _learningRate = settings.LearningRate;
 
-            for (int i = 0; i < HIDDEN_SIZE; i++)
+            _w1 = new float[_hiddenSize1, _inputSize];
+            _b1 = new float[_hiddenSize1];
+            _w2 = new float[_hiddenSize2, _hiddenSize1];
+            _b2 = new float[_hiddenSize2];
+            _w3 = new float[_outputSize, _hiddenSize2];
+            _b3 = new float[_outputSize];
+
+            if (randomValues)
             {
-                for (int j = 0; j < INPUT_SIZE; j++)
+                for (int i = 0; i < _hiddenSize1; i++)
                 {
-                    W1[i, j] = (float)(rand.NextDouble() * 0.1 - 0.05);
+                    for (int j = 0; j < _inputSize; j++)
+                    {
+                        _w1[i, j] = (float)(rand.NextDouble() * 0.1 - 0.05);
+                    }
+
+                    _b1[i] = 0;
                 }
 
-                B1[i] = 0;
-            }
-
-            for (int i = 0; i < OUTPUT_SIZE; i++)
-            {
-                for (int j = 0; j < HIDDEN_SIZE; j++)
+                for (int i = 0; i < _hiddenSize2; i++)
                 {
-                    W2[i, j] = (float)(rand.NextDouble() * 0.1 - 0.05);
+                    for (int j = 0; j < _hiddenSize1; j++)
+                    {
+                        _w2[i, j] = (float)(rand.NextDouble() * 0.1 - 0.05);
+                    }
+                    _b2[i] = 0;
                 }
-                B2[i] = 0;
+
+                for (int i = 0; i < _outputSize; i++)
+                {
+                    for (int j = 0; j < _hiddenSize2; j++)
+                    {
+                        _w3[i, j] = (float)(rand.NextDouble() * 0.1 - 0.05);
+                    }
+                    _b3[i] = 0;
+                }
             }
         }
 
-        public float[] Forward(float[] input, out float[] hidden, out float[] logits)
+        public float[] Forward(float[] input, out float[] h1, out float[] h2, out float[] logits)
         {
-            hidden = new float[HIDDEN_SIZE];
-
-            for (int i = 0; i < HIDDEN_SIZE; i++)
+            h1 = new float[_hiddenSize1];
+            for (int i = 0; i < _hiddenSize1; i++)
             {
-                float sum = B1[i];
-                for (int j = 0; j < INPUT_SIZE; j++)
+                float sum = _b1[i];
+                for (int j = 0; j < _inputSize; j++)
                 {
-                    sum += W1[i, j] * input[j];
+                    sum += _w1[i, j] * input[j];
                 }
 
-                hidden[i] = Utils.Sigmoid(sum);
+                h1[i] = Utils.Sigmoid(sum);
             }
 
-            logits = new float[OUTPUT_SIZE];
-
-            for (int i = 0; i < OUTPUT_SIZE; i++)
+            h2 = new float[_hiddenSize2];
+            for (int i = 0; i < _hiddenSize2; i++)
             {
-                float sum = B2[i];
-
-                for (int j = 0; j < HIDDEN_SIZE; j++)
+                float sum = _b2[i];
+                for (int j = 0; j < _hiddenSize1; j++)
                 {
-                    sum += W2[i, j] * hidden[j];
+                    sum += _w2[i, j] * h1[j];
+                }
+
+                h2[i] = Utils.Sigmoid(sum);
+            }
+
+            logits = new float[_outputSize];
+            for (int i = 0; i < _outputSize; i++)
+            {
+                float sum = _b3[i];
+
+                for (int j = 0; j < _hiddenSize2; j++)
+                {
+                    sum += _w3[i, j] * h2[j];
                 }
 
                 logits[i] = sum;
@@ -81,126 +114,179 @@ namespace SVGL
 
         public void TrainOnSample(float[] input, int label)
         {
-            float[] hidden, logits;
-            float[] output = Forward(input, out hidden, out logits);
+            float[] h1, h2, logits;
+            float[] output = Forward(input, out h1, out h2, out logits);
 
-            float[] target = new float[OUTPUT_SIZE];
+            float[] target = new float[_outputSize];
             target[label] = 1;
 
             // compute error at output
-            float[] errorOutput = new float[OUTPUT_SIZE];
-            
-            for (int i = 0; i < OUTPUT_SIZE; i++)
+            float[] errorOutput = new float[_outputSize];
+
+            for (int i = 0; i < _outputSize; i++)
             {
                 errorOutput[i] = output[i] - target[i];
             }
 
-            // W2 and B2 gradients
-            float[,] gradientW2 = new float[OUTPUT_SIZE, HIDDEN_SIZE];
-            float[] gradientB2 = new float[OUTPUT_SIZE];
+            float[,] gradientW3 = new float[_outputSize, _hiddenSize2];
+            float[] gradientB3 = new float[_outputSize];
 
-            for (int i = 0; i < OUTPUT_SIZE; i++)
+            for (int i = 0; i < _outputSize; i++)
             {
-                gradientB2[i] = errorOutput[i];
+                gradientB3[i] = errorOutput[i];
 
-                for (int j = 0; j < HIDDEN_SIZE; j++)
+                for (int j = 0; j < _hiddenSize2; j++)
                 {
-                    gradientW2[i, j] = errorOutput[i] * hidden[j];
+                    gradientW3[i, j] = errorOutput[i] * h2[j];
                 }
             }
 
-            // backpropogate error to hidden layer
-            float[] errorHidden = new float[HIDDEN_SIZE];
+            float[] errorHidden2 = new float[_hiddenSize2];
 
-            for (int j = 0; j < HIDDEN_SIZE; j++)
+            for (int j = 0; j < _hiddenSize2; j++)
             {
                 float sum = 0;
 
-                for (int i = 0; i < OUTPUT_SIZE; i++)
+                for (int i = 0; i < _outputSize; i++)
                 {
-                    sum += W2[i, j] * errorOutput[i];
+                    sum += _w3[i, j] * errorOutput[i];
                 }
 
-                errorHidden[j] = sum * Utils.SigmoidDerivative(hidden[j]);
+                errorHidden2[j] = sum * Utils.SigmoidDerivative(h2[j]);
             }
 
-            // W1 and B1 gradients
-            float[,] gradientW1 = new float[HIDDEN_SIZE, INPUT_SIZE];
-            float[] gradientB1 = new float[HIDDEN_SIZE];
+            float[,] gradientW2 = new float[_hiddenSize2, _hiddenSize1];
+            float[] gradientB2 = new float[_hiddenSize2];
 
-            for (int i = 0; i < HIDDEN_SIZE; i++)
+            for (int i = 0; i < _hiddenSize2; i++)
             {
-                gradientB1[i] = errorHidden[i];
-                for (int j = 0; j < INPUT_SIZE; j++)
+                gradientB2[i] = errorHidden2[i];
+                for (int j = 0; j < _hiddenSize1; j++)
                 {
-                    gradientW1[i, j] = errorHidden[i] * input[j];
+                    gradientW2[i, j] = errorHidden2[i] * h1[j];
                 }
             }
 
-            // update weights
-            for (int i = 0; i < HIDDEN_SIZE; i++)
+            float[] errorHidden1 = new float[_hiddenSize1];
+            
+            for (int j = 0; j < _hiddenSize1; j++)
             {
-                for (int j = 0; j < INPUT_SIZE; j++)
+                float sum = 0;
+
+                for (int i = 0; i < _hiddenSize2; i++)
                 {
-                    W1[i, j] -= LEARNING_RATE * gradientW1[i, j];
+                    sum += _w2[i, j] * errorHidden2[i];
                 }
 
-                B1[i] -= LEARNING_RATE * gradientB1[i];
+                errorHidden1[j] = sum * Utils.SigmoidDerivative(h1[j]);
             }
 
-            for (int i = 0; i < OUTPUT_SIZE; i++)
+            float[,] gradientW1 = new float[_hiddenSize1, _inputSize];
+            float[] gradientB1 = new float[_hiddenSize1];
+
+            for (int i = 0; i < _hiddenSize1; i++)
             {
-                for (int j = 0; j < HIDDEN_SIZE; j++)
+                gradientB1[i] = errorHidden1[i];
+                
+                for (int j = 0; j < _inputSize; j++)
                 {
-                    W2[i, j] -= LEARNING_RATE * gradientW2[i, j];
+                    gradientW1[i, j] = errorHidden1[i] * input[j];
+                }
+            }
+
+            for (int i = 0; i < _hiddenSize1; i++)
+            {
+                for (int j = 0; j < _inputSize; j++)
+                {
+                    _w1[i, j] -= _learningRate * gradientW1[i, j];
                 }
 
-                B2[i] -= LEARNING_RATE * gradientB2[i];
+                _b1[i] -= _learningRate * gradientB1[i];
+            }
+
+            for (int i = 0; i < _hiddenSize2; i++)
+            {
+                for (int j = 0; j < _hiddenSize1; j++)
+                {
+                    _w2[i, j] -= _learningRate * gradientW2[i, j];
+                }
+
+                _b2[i] -= _learningRate * gradientB2[i];
+            }
+
+            for (int i = 0; i < _outputSize; i++)
+            {
+                for (int j = 0; j < _hiddenSize2; j++)
+                {
+                    _w3[i, j] -= _learningRate * gradientW3[i, j];
+                }
+
+                _b3[i] -= _learningRate * gradientB3[i];
             }
         }
 
         public void SaveWeights(string filePath)
         {
             NeuralNetworkWeightsData weightsData = new NeuralNetworkWeightsData();
-            weightsData.InputSize = INPUT_SIZE;
-            weightsData.HiddenSize = HIDDEN_SIZE;
-            weightsData.OutputSize = OUTPUT_SIZE;
+            weightsData.InputSize = _inputSize;
+            weightsData.HiddenSize1 = _hiddenSize1;
+            weightsData.HiddenSize2 = _hiddenSize2;
+            weightsData.OutputSize = _outputSize;
 
-            // flatten W1
-            weightsData.W1 = new float[HIDDEN_SIZE * INPUT_SIZE];
+            // flatten _w1
+            weightsData.W1 = new float[_hiddenSize1 * _inputSize];
 
-            for (int i = 0; i < HIDDEN_SIZE; i++)
+            for (int i = 0; i < _hiddenSize1; i++)
             {
-                for (int j = 0; j < INPUT_SIZE; j++)
+                for (int j = 0; j < _inputSize; j++)
                 {
-                    weightsData.W1[i * INPUT_SIZE + j] = W1[i, j];
+                    weightsData.W1[i * _inputSize + j] = _w1[i, j];
                 }
             }
 
-            // copy B1
-            weightsData.B1 = new float[HIDDEN_SIZE];
+            // copy _b1
+            weightsData.B1 = new float[_hiddenSize1];
 
-            for (int i = 0; i < HIDDEN_SIZE; i++)
+            for (int i = 0; i < _hiddenSize1; i++)
             {
-                weightsData.B1[i] = B1[i];
+                weightsData.B1[i] = _b1[i];
             }
 
-            // flatten W2
-            weightsData.W2 = new float[OUTPUT_SIZE * HIDDEN_SIZE];
+            // flatten _w2
+            weightsData.W2 = new float[_hiddenSize2 * _hiddenSize1];
 
-            for (int i = 0; i < OUTPUT_SIZE; i++)
+            for (int i = 0; i < _hiddenSize2; i++)
             {
-                for (int j = 0; j < HIDDEN_SIZE; j++)
+                for (int j = 0; j < _hiddenSize1; j++)
                 {
-                    weightsData.W2[i * HIDDEN_SIZE + j] = W2[i, j];
+                    weightsData.W2[i * _hiddenSize1 + j] = _w2[i, j];
                 }
             }
 
-            // copy B2
-            weightsData.B2 = new float[OUTPUT_SIZE];
-            for (int i = 0; i < OUTPUT_SIZE; i++)
+            // copy _b2
+            weightsData.B2 = new float[_hiddenSize2];
+            for (int i = 0; i < _hiddenSize2; i++)
             {
-                weightsData.B2[i] = B2[i];
+                weightsData.B2[i] = _b2[i];
+            }
+
+            // flatten _w3
+            weightsData.W3 = new float[_outputSize * _hiddenSize2];
+
+            for (int i = 0; i < _outputSize; i++)
+            {
+                for (int j = 0; j < _hiddenSize2; j++)
+                {
+                    weightsData.W3[i * _hiddenSize2 + j] = _w3[i, j];
+                }
+            }
+
+            // copy _b3
+            weightsData.B3 = new float[_outputSize];
+
+            for (int i = 0; i < _outputSize; i++)
+            {
+                weightsData.B3[i] = _b3[i];
             }
 
             string json = JsonUtility.ToJson(weightsData, true);
@@ -218,34 +304,46 @@ namespace SVGL
             string json = File.ReadAllText(filePath);
             NeuralNetworkWeightsData data = JsonUtility.FromJson<NeuralNetworkWeightsData>(json);
 
-            for (int i = 0; i < HIDDEN_SIZE; i++)
+            for (int i = 0; i < _hiddenSize1; i++)
             {
-                for (int j = 0; j < INPUT_SIZE; j++)
+                for (int j = 0; j < _inputSize; j++)
                 {
-                    W1[i, j] = data.W1[i * INPUT_SIZE + j];
+                    _w1[i, j] = data.W1[i * _inputSize + j];
                 }
             }
 
-            for (int i = 0; i < HIDDEN_SIZE; i++)
+            for (int i = 0; i < _hiddenSize1; i++)
             {
-                B1[i] = data.B1[i];
+                _b1[i] = data.B1[i];
             } 
 
-            for (int i = 0; i < OUTPUT_SIZE; i++)
+            for (int i = 0; i < _hiddenSize2; i++)
             {
-                for (int j = 0; j < HIDDEN_SIZE; j++)
+                for (int j = 0; j < _hiddenSize1; j++)
                 {
-                    W2[i, j] = data.W2[i * HIDDEN_SIZE + j];
+                    _w2[i, j] = data.W2[i * _hiddenSize1 + j];
                 }
             }
 
-            for (int i = 0; i < OUTPUT_SIZE; i++)
+            for (int i = 0; i < _hiddenSize2; i++)
             {
-                B2[i] = data.B2[i];
+                _b2[i] = data.B2[i];
+            }
+
+            for (int i = 0; i < _outputSize; i++)
+            {
+                for (int j = 0; j < _hiddenSize2; j++)
+                {
+                    _w3[i, j] = data.W3[i * _hiddenSize2 + j];
+                }
+            }
+
+            for (int i = 0; i < _outputSize; i++)
+            {
+                _b3[i] = data.B3[i];
             }
 
             Debug.Log($"Weights loaded from: {filePath}");
-            ModelEvaluator.EvaluateTestSet(this);
         }
     }
 }

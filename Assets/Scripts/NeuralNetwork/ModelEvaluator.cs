@@ -6,9 +6,9 @@ namespace SVGL
 {
     public static class ModelEvaluator
     {
-        public static void EvaluateTestSet(NeuralNetwork neuralNetwork)
+        public static void EvaluateTestSet(NeuralNetwork neuralNetwork, NetworkSettingsSO settings)
         {
-            string testFilePath = Path.Combine(Application.streamingAssetsPath, "mnist_test.csv");
+            string testFilePath = Path.Combine(Application.streamingAssetsPath, settings.TestDataFile);
             testFilePath = testFilePath.Replace("\\", "/");
 
             if (!File.Exists(testFilePath))
@@ -50,8 +50,8 @@ namespace SVGL
                     pixels[j] = pixelValue / 255;
                 }
 
-                float[] hidden, logits;
-                float[] output = neuralNetwork.Forward(pixels, out hidden, out logits);
+                float[] h1, h2, logits;
+                float[] output = neuralNetwork.Forward(pixels, out h1, out h2, out logits);
 
                 // Determine the predicted label (index of maximum probability).
                 int predictedLabel = 0;

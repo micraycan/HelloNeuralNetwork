@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace SVGL
 {
-    public class DrawingCanvas : MonoBehaviour, IPointerDownHandler, IDragHandler
+    public class DrawingCanvas : MonoBehaviour, IDragHandler
     {
         [SerializeField] private int _brushSize;
 
@@ -27,11 +27,6 @@ namespace SVGL
             Draw(eventData);
         }
 
-        public void OnPointerDown(PointerEventData eventData)
-        {
-            //Draw(eventData);
-        }
-
         private bool CanDraw(RectTransform rect, PointerEventData eventData, out Vector2 localPos)
         {
             return RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, eventData.position, eventData.pressEventCamera, out localPos);
@@ -50,11 +45,20 @@ namespace SVGL
 
         private void DrawWithBrush(int x, int y)
         {
-            for (int i = -_brushSize / 2; i < _brushSize / 2; i++)
+            int brushRadius = _brushSize / 2;
+
+            for (int i = -brushRadius; i < brushRadius / 2; i++)
             {
-                for (int j = -_brushSize / 2; j < _brushSize / 2; j++)
+                for (int j = -brushRadius; j < brushRadius / 2; j++)
                 {
-                    _image.SetPixel(x + i, y + j, Color.white);
+                    int pixelX = x + i;
+                    int pixelY = y + j;
+                    float distance = Mathf.Sqrt(i * i + j * j);
+
+                    if (distance <= brushRadius)
+                    {
+                        _image.SetPixel(pixelX, pixelY, Color.white);
+                    }
                 }
             }
 

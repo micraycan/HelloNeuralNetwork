@@ -44,7 +44,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d5df96b8bcbe58479f04a33c64b4655, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _trainingCount: 100000
-  _trainingData: mnist_train.csv
-  _testingData: mnist_test.csv
-  _trainedData: mnist_trained_weights.json
+  _settings: {fileID: 11400000, guid: 77540ffb9a9f8ac4f92109bb6221276e, type: 2}

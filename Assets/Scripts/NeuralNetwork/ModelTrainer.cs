@@ -11,19 +11,15 @@ namespace SVGL
 {
     public class ModelTrainer : MonoBehaviour
     {
-        [SerializeField] private int _trainingCount = 1000;
-        [SerializeField] private string _trainingData;
-        [SerializeField] private string _testingData;
-        [SerializeField] private string _trainedData;
+        [SerializeField] private NetworkSettingsSO _settings;
 
         [Button("Train Model Weights")]
         public void TrainModel()
         {
 #if UNITY_EDITOR
-            NeuralNetwork neuralNetwork = new NeuralNetwork();
-            var time = Time.time;
+            NeuralNetwork neuralNetwork = new NeuralNetwork(_settings, true);
 
-            string csvPath = Path.Combine(Application.dataPath, "StreamingAssets", _trainingData);
+            string csvPath = Path.Combine(Application.dataPath, "StreamingAssets", _settings.TrainDataFile);
             csvPath = csvPath.Replace("\\", "/");
 
             if (!File.Exists(csvPath))
@@ -35,7 +31,7 @@ namespace SVGL
             string[] lines = File.ReadAllLines(csvPath);
             Debug.Log($"Total training samples in CSV: {lines.Length}");
 
-            int examplesToTrain = Mathf.Min(_trainingCount, lines.Length);
+            int examplesToTrain = Mathf.Min(_settings.TrainingSize, lines.Length);
             Debug.Log($"Training on {examplesToTrain} samples...");
 
             for (int i = 0; i < examplesToTrain; i++)
@@ -55,8 +51,8 @@ namespace SVGL
                     continue;
                 }
 
-                float[] pixels = new float[neuralNetwork.INPUT_SIZE];
-                for (int j = 0; j < neuralNetwork.INPUT_SIZE; j++)
+                float[] pixels = new float[_settings.InputSize];
+                for (int j = 0; j < _settings.InputSize; j++)
                 {
                     if (!float.TryParse(parts[j + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out float pixelValue))
                     {
@@ -73,22 +69,15 @@ namespace SVGL
                 if (i % 1000 == 0) { Debug.Log($"Trained on {i} samples..."); }
             }
 
-            var duration = Time.time - time;
-            Debug.Log($"Training completed in {duration:F2} seconds ");
-
             string folderPath = Path.Combine(Application.dataPath, "StreamingAssets");
             folderPath = folderPath.Replace("\\", "/");
 
-            if (!Directory.Exists(folderPath))
-            {
-                Directory.CreateDirectory(folderPath);
-            }
-
-            string filePath = Path.Combine(folderPath, _trainedData);
+            string filePath = Path.Combine(folderPath, _settings.WeightDataFile);
 
             neuralNetwork.SaveWeights(filePath);
 
             Debug.Log($"Model weights exported to: {filePath}");
+            ModelEvaluator.EvaluateTestSet(neuralNetwork, _settings);
 #else
             Debug.LogError("How'd you even get here?");
 #endif
