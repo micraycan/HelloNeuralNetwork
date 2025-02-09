@@ -19,8 +19,7 @@ namespace SVGL
 #if UNITY_EDITOR
             NeuralNetwork neuralNetwork = new NeuralNetwork(_settings, true);
 
-            string csvPath = Path.Combine(Application.dataPath, "StreamingAssets", _settings.TrainDataFile);
-            csvPath = csvPath.Replace("\\", "/");
+            string csvPath = Path.Combine(Application.streamingAssetsPath, _settings.TrainDataFile);
 
             if (!File.Exists(csvPath))
             {
@@ -69,10 +68,7 @@ namespace SVGL
                 if (i % 1000 == 0) { Debug.Log($"Trained on {i} samples..."); }
             }
 
-            string folderPath = Path.Combine(Application.dataPath, "StreamingAssets");
-            folderPath = folderPath.Replace("\\", "/");
-
-            string filePath = Path.Combine(folderPath, _settings.WeightDataFile);
+            string filePath = Path.Combine(Application.streamingAssetsPath, _settings.WeightDataFile);
 
             neuralNetwork.SaveWeights(filePath);
 

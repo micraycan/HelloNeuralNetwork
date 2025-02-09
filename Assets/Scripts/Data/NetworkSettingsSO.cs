@@ -12,17 +12,27 @@ namespace SVGL
         [SerializeField] private DefaultAsset weightsJSON;
 
         [Header("Neural Network Settings")]
-        [field: SerializeField] public int InputSize { get; set; }
-        [field: SerializeField] public int HiddenSize1 { get; set; }
-        [field: SerializeField] public int HiddenSize2 { get; set; }
-        [field: SerializeField] public int OutputSize { get; set; }
+        [SerializeField] private int _inputSize;
+        [SerializeField] private int _hiddenSize1;
+        [SerializeField] private int _hiddenSize2;
+        [SerializeField] private int _outputSize;
 
         [Header("Training Parameters")]
-        [field: SerializeField] public int TrainingSize { get; set; }
-        [field: SerializeField] public float LearningRate { get; set; }
+        [SerializeField] private int _trainingSize;
+        [SerializeField] private float _learningRate;
+        [SerializeField] private int _epoch;
 
         public string TrainDataFile => trainCSV.name + ".csv";
         public string TestDataFile => testCSV.name + ".csv";
         public string WeightDataFile => weightsJSON.name + ".json";
+
+        public int InputSize => _inputSize;
+        public int HiddenSize1 => _hiddenSize1;
+        public int HiddenSize2 => _hiddenSize2;
+        public int OutputSize => _outputSize;
+
+        public int TrainingSize => _trainingSize;
+        public float LearningRate => _learningRate;
+        public int Epoch => _epoch;
     }
 }
