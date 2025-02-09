@@ -7,9 +7,9 @@ namespace SVGL
     public class NetworkSettingsSO : ScriptableObject
     {
         [Header("Files")]
-        [SerializeField] private DefaultAsset trainCSV;
-        [SerializeField] private DefaultAsset testCSV;
-        [SerializeField] private DefaultAsset weightsJSON;
+        [SerializeField] private string trainCSV;
+        [SerializeField] private string testCSV;
+        [SerializeField] private string weightsJSON;
 
         [Header("Neural Network Settings")]
         [SerializeField] private int _inputSize;
@@ -21,9 +21,9 @@ namespace SVGL
         [SerializeField] private float _learningRate;
         [SerializeField] private int _epochs;
 
-        public string TrainDataFile => trainCSV.name + ".csv";
-        public string TestDataFile => testCSV.name + ".csv";
-        public string WeightDataFile => weightsJSON.name + ".json";
+        public string TrainDataFile => trainCSV;
+        public string TestDataFile => testCSV;
+        public string WeightDataFile => weightsJSON;
 
         public int InputSize => _inputSize;
         public int HiddenSize1 => _hiddenSize1;

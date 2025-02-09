@@ -4,9 +4,10 @@ using UnityEngine.UI;
 
 namespace SVGL
 {
-    public class DrawingCanvas : MonoBehaviour, IDragHandler
+    public class DrawingCanvas : MonoBehaviour, IPointerDownHandler, IDragHandler
     {
         [SerializeField] private int _brushSize;
+        private Vector2? _lastDrawPosition = null;
 
         private RawImage _canvas;
         private Texture2D _image;
@@ -22,10 +23,9 @@ namespace SVGL
             ResetDrawing();
         }
 
-        public void OnDrag(PointerEventData eventData)
-        {
-            Draw(eventData);
-        }
+        public void OnDrag(PointerEventData eventData) => Draw(eventData);
+
+        public void OnPointerDown(PointerEventData eventData) => _lastDrawPosition = null;
 
         private bool CanDraw(RectTransform rect, PointerEventData eventData, out Vector2 localPos)
         {
@@ -36,10 +36,30 @@ namespace SVGL
         {
             if (CanDraw(_canvas.rectTransform, eventData, out Vector2 localPos))
             {
+                UIManager.Instance.ClearGuess();
+
                 float x = localPos.x + _canvas.rectTransform.rect.width * _canvas.rectTransform.pivot.x;
                 float y = localPos.y + _canvas.rectTransform.rect.height * _canvas.rectTransform.pivot.y;
 
-                DrawWithBrush((int)x, (int)y);
+                Vector2 currentPos = new Vector2(x, y);
+
+                if (_lastDrawPosition.HasValue) { DrawLine(_lastDrawPosition.Value, currentPos); }
+                else { DrawWithBrush((int)x, (int)y); }
+
+                _lastDrawPosition = currentPos;
+            }
+        }
+
+        private void DrawLine(Vector2 start, Vector2 end)
+        {
+            float distance = Vector2.Distance(start, end);
+            int steps = Mathf.CeilToInt(distance);
+
+            for (int i = 0; i <= steps; i++)
+            {
+                float time = i / (float)steps;
+                Vector2 interpolatedPoint = Vector2.Lerp(start, end, time);
+                DrawWithBrush((int)interpolatedPoint.x, (int)interpolatedPoint.y);
             }
         }
 

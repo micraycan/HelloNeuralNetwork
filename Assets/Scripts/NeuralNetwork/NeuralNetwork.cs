@@ -13,6 +13,10 @@ namespace SVGL
         
         public Layer[] Layers { get; private set; }
 
+        /// <summary>
+        /// Initializes a new instance of the NeuralNetwork class using the specified settings.
+        /// </summary>
+        /// <param name="settings">The network configuration settings.</param>
         public NeuralNetwork(NetworkSettingsSO settings)
         {
             _learningRate = settings.LearningRate;
@@ -25,6 +29,11 @@ namespace SVGL
             };
         }
 
+        /// <summary>
+        /// Performs a forward pass through the network.
+        /// </summary>
+        /// <param name="inputs">The input values.</param>
+        /// <returns>The softmax-normalized output probabilities.</returns>
         public float[] Forward(float[] inputs)
         {
             float[] current = inputs;
@@ -37,26 +46,31 @@ namespace SVGL
             return Softmax(current);
         }
 
+        /// <summary>
+        /// Computes the softmax of an array of logits.
+        /// </summary>
+        /// <param name="logits">The logits to normalize.</param>
+        /// <returns>An array of probabilities that sum to 1.</returns>
         private float[] Softmax(float[] logits)
         {
             float max = float.MinValue;
             float sum = 0f;
             float[] exp = new float[logits.Length];
 
-            // find max value
+            // find maximum logit (for numerical stability)
             for (int i = 0; i < logits.Length; i++)
             {
                 if (logits[i] > max) { max = logits[i]; }
             }
 
-            // compute exponents
+            // compute exponents and sum them
             for (int i = 0; i < logits.Length; i++)
             {
                 exp[i] = math.exp(logits[i] - max);
                 sum += exp[i];
             }
 
-            // normalize probabilities
+            // normalize exponentials to probabilities
             for (int i = 0; i < exp.Length; i++)
             {
                 exp[i] /= sum;
@@ -65,8 +79,14 @@ namespace SVGL
             return exp;
         }
 
+        /// <summary>
+        /// Trains the network on a single example using backpropagation.
+        /// </summary>
+        /// <param name="inputs">The input data.</param>
+        /// <param name="target">The index of the correct target class.</param>
         public void Train(float[] inputs, int target)
         {
+            // forward pass: record activations for each layer
             float[][] activations = new float[Layers.Length + 1][];
             activations[0] = inputs;
             float[] currentOutput = inputs;
@@ -80,11 +100,13 @@ namespace SVGL
             float[] softmaxOutput = Softmax(currentOutput);
             float[] targetVector = new float[softmaxOutput.Length];
 
+            // create one-hot encoded target vector
             for (int i = 0; i < targetVector.Length; i++)
             {
                 targetVector[i] = (i == target) ? 1 : 0;
             }
 
+            // compute initial error (softmax ouput minus target)
             float[] error = new float[softmaxOutput.Length];
 
             for (int i = 0; i < error.Length; i++)
@@ -92,12 +114,17 @@ namespace SVGL
                 error[i] = softmaxOutput[i] - targetVector[i];
             }
 
+            // backpropogate the error through the layers
             for (int i = Layers.Length - 1; i >= 0; i--)
             {
                 error = Layers[i].Backward(activations[i], error, _learningRate);
             }
         }
 
+        /// <summary>
+        /// Saves the network weights to a JSON file.
+        /// </summary>
+        /// <param name="filePath">The file path where weights will be saved.</param>
         public void SaveWeights(string filePath)
         {
             NeuralNetworkData networkData = new NeuralNetworkData();
@@ -133,9 +160,12 @@ namespace SVGL
 
             string json = JsonUtility.ToJson(networkData, true);
             File.WriteAllText(filePath, json);
-            Debug.Log($"Weights saved to: {filePath}");
         }
 
+        /// <summary>
+        /// Loads network weights from a JSON file.
+        /// </summary>
+        /// <param name="filePath">The file path from which weights will be loaded.</param>
         public void LoadWeights(string filePath)
         {
             if (!File.Exists(filePath))
@@ -144,12 +174,20 @@ namespace SVGL
             }
 
             string json = File.ReadAllText(filePath);
+            LoadWeightsFromJSON(json);
+        }
+
+        /// <summary>
+        /// Loads network weights from a JSON file.
+        /// </summary>
+        /// <param name="json">The json data to load.</param>
+        public void LoadWeightsFromJSON(string json)
+        {
             NeuralNetworkData networkData = JsonUtility.FromJson<NeuralNetworkData>(json);
 
             if (networkData.Layers.Count != Layers.Length)
             {
-                Debug.LogError($"Mismatch in number of layers. Expected: {Layers.Length}; Found: {networkData.Layers.Count}");
-                return;
+                throw new Exception("Mismatch with layers");
             }
 
             for (int l = 0; l < Layers.Length; l++)
@@ -160,8 +198,7 @@ namespace SVGL
 
                 if (rows != Layers[l].Weights.GetLength(0) || cols != Layers[l].Weights.GetLength(1))
                 {
-                    Debug.LogError($"Dimension mismatch for layer {l}");
-                    continue;
+                    throw new Exception("Dimension mismatch");
                 }
 
                 int index = 0;
@@ -174,13 +211,8 @@ namespace SVGL
                     }
                 }
 
-                for (int i = 0; i < rows; i++)
-                {
-                    Layers[l].Biases[i] = layerData.Biases[i];
-                }
+                Array.Copy(layerData.Biases, Layers[l].Biases, rows);
             }
-
-            Debug.Log($"Weights loaded from: {filePath}");
         }
     }
 }

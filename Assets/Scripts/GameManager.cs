@@ -1,5 +1,7 @@
+using System.Collections;
 using System.IO;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace SVGL
 {
@@ -22,9 +24,39 @@ namespace SVGL
 
             NeuralNet = new NeuralNetwork(NetworkSettings);
 
-            string filePath = Path.Combine(Application.streamingAssetsPath, NetworkSettings.WeightDataFile);
-            filePath = filePath.Replace("\\", "/");
-            NeuralNet.LoadWeights(filePath);
+            
+        }
+
+        private void Start()
+        {
+            string filePath = string.Empty;
+#if UNITY_WEBGL
+            filePath = Application.streamingAssetsPath + "/" + NetworkSettings.WeightDataFile;
+            StartCoroutine(LoadWeightsWebGL(filePath));
+#else
+            filePath = Path.Combine(Application.streamingAssetsPath, NetworkSettings.WeightDataFile);
+            NeuralNet.LoadWeights(filePath); }
+#endif
+        }
+
+        private IEnumerator LoadWeightsWebGL(string filePath)
+        {
+            using (UnityWebRequest webRq = UnityWebRequest.Get(filePath))
+            {
+                yield return webRq.SendWebRequest();
+
+                switch (webRq.result)
+                {
+                    case UnityWebRequest.Result.ConnectionError:
+                        throw new IOException("Connection Error");
+                    case UnityWebRequest.Result.ProtocolError:
+                        throw new IOException("Protocol Error");
+                    default:
+                        string jsonText = webRq.downloadHandler.text;
+                        NeuralNet.LoadWeightsFromJSON(jsonText);
+                        break;
+                }
+            }
         }
     }
 }

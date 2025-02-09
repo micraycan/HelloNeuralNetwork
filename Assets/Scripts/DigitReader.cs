@@ -28,8 +28,8 @@ namespace SVGL
                 }
             }
 
-            Debug.Log($"Guess: {highestIndex} | Confidence: {highestWeight}");
-            // TODO: Switch to sending a UI event
+            _drawCanvas.GetComponent<DrawingCanvas>().ResetDrawing();
+            UIManager.Instance.UpdateGuess(highestIndex);
         }
     }
 }

@@ -12,6 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58cf8e0177a1d8e49ae24a68fbc63a6a, type: 3}
   m_Name: Network Settings
   m_EditorClassIdentifier: 
-  trainCSV: {fileID: 0}
-  testCSV: {fileID: 0}
-  weightsJSON: {fileID: 0}
+  trainCSV: mnist_train.csv
+  testCSV: mnist_test.csv
+  weightsJSON: mnist_trained_weights.json
+  _inputSize: 784
+  _hiddenSize1: 128
+  _hiddenSize2: 64
+  _outputSize: 10
+  _learningRate: 0.07
+  _epochs: 50

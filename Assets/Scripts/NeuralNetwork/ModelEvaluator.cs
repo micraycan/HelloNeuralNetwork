@@ -6,15 +6,19 @@ namespace SVGL
 {
     public static class ModelEvaluator
     {
+        /// <summary>
+        /// Evaluates the given neural network using the test data specified in the settings.
+        /// Reads a CSV file containing test samples, processes each sample, and logs the overall accuracy.
+        /// </summary>
+        /// <param name="neuralNetwork">The trained neural network to be evaluated.</param>
+        /// <param name="settings">The network settings, including file paths for test data.</param>
         public static void EvaluateTestSet(NeuralNetwork neuralNetwork, NetworkSettingsSO settings)
         {
             string testFilePath = Path.Combine(Application.streamingAssetsPath, settings.TestDataFile);
-            testFilePath = testFilePath.Replace("\\", "/");
 
             if (!File.Exists(testFilePath))
             {
-                Debug.LogError($"Test file not found: {testFilePath}");
-                return;
+                throw new FileNotFoundException($"Test file not found: {testFilePath}");
             }
 
             string[] lines = File.ReadAllLines(testFilePath);
@@ -28,13 +32,11 @@ namespace SVGL
 
                 if (parts.Length != 785)
                 {
-                    Debug.LogWarning($"Skipping invalid line {i}");
                     continue;
                 }
 
                 if (!int.TryParse(parts[0], out int label))
                 {
-                    Debug.LogWarning($"Skipping invalid label at line {i}");
                     continue;
                 }
 
@@ -43,16 +45,16 @@ namespace SVGL
                 {
                     if (!float.TryParse(parts[j + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out float pixelValue))
                     {
-                        Debug.LogWarning($"Skipping invalid pixel value at line {i}, index {j}");
                         pixelValue = 0;
                     }
 
                     pixels[j] = pixelValue / 255;
                 }
 
+                // get neural network output for the current sample
                 float[] output = neuralNetwork.Forward(pixels);
 
-                // Determine the predicted label (index of maximum probability).
+                // determine the predicted label (index of maximum probability).
                 int predictedLabel = 0;
                 float maxProbability = output[0];
                 for (int k = 1; k < output.Length; k++)
@@ -71,7 +73,6 @@ namespace SVGL
             }
 
             float accuracy = (float)correctCount / totalSamples * 100f;
-            Debug.Log($"Test Accuracy: {accuracy:F2}%");
         }
     }
 }

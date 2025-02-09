@@ -17,6 +17,10 @@ namespace SVGL
     {
         [SerializeField] private NetworkSettingsSO _settings;
 
+        /// <summary>
+        /// Trains the neural network model using training data from a CSV file.
+        /// This method is triggered via an Odin Inspector button.
+        /// </summary>
         [Button("Train Model Weights")]
         public void TrainModel()
         {
@@ -27,6 +31,7 @@ namespace SVGL
 
             for (int epoch = 0; epoch < _settings.Epochs; epoch++)
             {
+                // shuffle the dataset by ordering randomly
                 string[] shuffledLines = lines.OrderBy(x => Guid.NewGuid()).ToArray();
 
                 foreach (string line in shuffledLines)
@@ -34,6 +39,7 @@ namespace SVGL
                     ProcessSample(neuralNet, line);
                 }
 
+                // evaluate the neural network on a test set after each epoch
                 ModelEvaluator.EvaluateTestSet(neuralNet, _settings);
             }
 
@@ -44,6 +50,12 @@ namespace SVGL
 #endif
         }
 
+        /// <summary>
+        /// Processes a single CSV sample by extracting the label and pixel data,
+        /// normalizing the pixel values, and training the neural network with the sample.
+        /// </summary>
+        /// <param name="neuralNet">The neural network to be trained.</param>
+        /// <param name="line">A line from the CSV file containing the label and pixel values.</param>
         private void ProcessSample(NeuralNetwork neuralNet, string line)
         {
             string[] parts = line.Split(',');
@@ -57,6 +69,7 @@ namespace SVGL
                     value = 0f;
                 }
 
+                // normalize the pixel value from [0, 255] to a [0, 1] range
                 pixels[j] = Mathf.Clamp(value / 255, 0, 1);
             }
 
